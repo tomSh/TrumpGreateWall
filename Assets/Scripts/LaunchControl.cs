@@ -2,79 +2,138 @@
 using System.Collections;
 using System;
 
-public class LaunchControl : MonoBehaviour, FloatProvider{
+public class LaunchControl : MonoBehaviour{
 
     private const float MAX_DEG = 90f;
     private const float MAC_LAUNCH_FORCE = 30f;
+    private const float FIRE_INTERVAL_IN_SECONDS = 0.2f;
 
     public float launchForce;
+    public float chargeForce = 0;
     public float verticalPercent;
     private float FORCE_ACC;
     private bool charging;
     private bool aimingUp;
     private bool skipOne;
+    private float numberToFire;
+    private float timeSinceLastShot;
     public AudioClip launchClip;
     public Transform gun;
     public Transform chargeBar;
     public Rigidbody2D launchable;
+    
 
     // Use this for initialization
     void Start () {
+        chargeForce = 0;
         launchForce = 0;
         verticalPercent = 0F;
         FORCE_ACC = 50;
         charging = false;
         aimingUp = true;
+        numberToFire = 0;
+        timeSinceLastShot = 0;
 
-}
+    }
 
     
 
     // Update is called once per frame
-    void Update () {
-
+    void Update ()
+    {
         // If the jump button is pressed and the player is grounded then the player should jump.
 
-        chargeBar.localScale = new Vector3(launchForce / 20, 0.1f, 0);
+        handleChargingGun();
 
-        if (Input.GetButtonDown("Jump"))
+        if (shouldStartShooting())
+        {
+            numberToFire = 5;
+            launchForce = chargeForce;
+            chargeForce = 0;
+        }
+        if (currentlyShooting())
+        {
+            shootProjectilesAsNeeded();
+        }
+        rotateGunIfNeeded();
+
+
+    }
+
+    private void handleChargingGun()
+    {
+        
+        if (startedChargingNextShot())
         {
             charging = true;
-            
-            launchForce += FORCE_ACC * Time.deltaTime;
         }
-        if (Input.GetButtonUp("Jump"))
-        {
-            if (!skipOne)
-            {
-                shootNewProjectile();
-            }
-            else
-            {
-                skipOne = false; //we skipped one launce
-            }
-        }
-        if (launchForce > MAC_LAUNCH_FORCE)
-        {
-            skipOne = true;
-            shootNewProjectile();
 
-        }
         if (charging)
         {
-            launchForce += FORCE_ACC * Time.deltaTime;
+            chargeForce += FORCE_ACC * Time.deltaTime;
+        }
+        chargeBar.localScale = new Vector3(chargeForce / 20, 0.1f, 0);
+    }
 
-        } else
+    private void rotateGunIfNeeded()
+    {
+        if (!charging && notFiring())
         {
             rotateGun();
         }
+    }
 
+    private bool shouldStartShooting()
+    {
+        
+        bool playerStopedPressing = Input.GetButtonUp("Jump");
+        bool cannotChargeAnyMore = chargeForce > MAC_LAUNCH_FORCE;
+        bool mustStopCharging = playerStopedPressing || cannotChargeAnyMore;
+        if (!mustStopCharging)
+        {
+            return false;
+        }
+        charging = false;
+        if (skipOne) {
+            skipOne = false;
+            return false;
+        }
+        if (cannotChargeAnyMore){
+            skipOne = true;
+        }
+        return notFiring() && chargeForce > 0;
+    }
+
+    private bool currentlyShooting()
+    {
+        return !notFiring();
+    }
+
+    private bool startedChargingNextShot()
+    {
+        return Input.GetButtonDown("Jump") && notFiring();
+    }
+
+    private bool notFiring()
+    {
+        return numberToFire == 0;
+    }
+
+    private void shootProjectilesAsNeeded()
+    {
+        timeSinceLastShot += Time.deltaTime;
+        if (timeSinceLastShot > FIRE_INTERVAL_IN_SECONDS) {
+            numberToFire--;
+            timeSinceLastShot = 0;
+            shootNewProjectile();
+        } if (numberToFire == 0) {
+            launchForce = 0;
+        }
     }
 
     private void shootNewProjectile()
     {
         AudioSource.PlayClipAtPoint(launchClip, transform.position);
-        charging = false;
         float xForce = launchForce * (MAX_DEG - verticalPercent);
         float yForce = launchForce * verticalPercent;
 
@@ -82,7 +141,6 @@ public class LaunchControl : MonoBehaviour, FloatProvider{
         Rigidbody2D toShoot = (Rigidbody2D)Instantiate(launchable, gun.position, launchable.transform.rotation);
         toShoot.tag = "Bullet";
         toShoot.AddForce(new Vector2(xForce, yForce));
-        launchForce = 0;
     }
 
     private void rotateGun()
@@ -117,16 +175,4 @@ public class LaunchControl : MonoBehaviour, FloatProvider{
         }
     }
 
-    public void FixedUpdate()
-    {
-        if (charging)
-        {
-            
-        }
-    }
-
-    public float getValue()
-    {
-        return launchForce / MAC_LAUNCH_FORCE;
-    }
 }
