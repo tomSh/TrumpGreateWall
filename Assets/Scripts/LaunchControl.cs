@@ -18,9 +18,11 @@ public class LaunchControl : MonoBehaviour{
     private float numberToFire;
     private float timeSinceLastShot;
     public AudioClip launchClip;
+    public AudioClip chargingClip;
     public Transform gun;
     public Transform chargeBar;
     public Rigidbody2D launchable;
+    AudioSource audioSource;
     
 
     // Use this for initialization
@@ -33,7 +35,7 @@ public class LaunchControl : MonoBehaviour{
         aimingUp = true;
         numberToFire = 0;
         timeSinceLastShot = 0;
-
+        audioSource = GetComponent<AudioSource>();
     }
 
     
@@ -42,7 +44,6 @@ public class LaunchControl : MonoBehaviour{
     void Update ()
     {
         // If the jump button is pressed and the player is grounded then the player should jump.
-
         handleChargingGun();
 
         if (shouldStartShooting())
@@ -50,6 +51,7 @@ public class LaunchControl : MonoBehaviour{
             numberToFire = 5;
             launchForce = chargeForce;
             chargeForce = 0;
+            audioSource.clip = launchClip;
         }
         if (currentlyShooting())
         {
@@ -66,6 +68,8 @@ public class LaunchControl : MonoBehaviour{
         if (startedChargingNextShot())
         {
             charging = true;
+            audioSource.clip = chargingClip;
+            audioSource.Play();
         }
 
         if (charging)
@@ -85,7 +89,7 @@ public class LaunchControl : MonoBehaviour{
 
     private bool shouldStartShooting()
     {
-        
+
         bool playerStopedPressing = Input.GetButtonUp("Jump");
         bool cannotChargeAnyMore = chargeForce > MAC_LAUNCH_FORCE;
         bool mustStopCharging = playerStopedPressing || cannotChargeAnyMore;
@@ -94,14 +98,24 @@ public class LaunchControl : MonoBehaviour{
             return false;
         }
         charging = false;
-        if (skipOne) {
+        stopPlayinSound();
+        if (skipOne)
+        {
             skipOne = false;
             return false;
         }
-        if (cannotChargeAnyMore){
+        if (cannotChargeAnyMore)
+        {
             skipOne = true;
         }
         return notFiring() && chargeForce > 0;
+    }
+
+    private void stopPlayinSound()
+    {
+       if (audioSource.isPlaying) {
+          audioSource.Stop();
+       }
     }
 
     private bool currentlyShooting()
@@ -133,7 +147,9 @@ public class LaunchControl : MonoBehaviour{
 
     private void shootNewProjectile()
     {
-        AudioSource.PlayClipAtPoint(launchClip, transform.position);
+
+        audioSource.Play();
+        
         float xForce = launchForce * (MAX_DEG - verticalPercent);
         float yForce = launchForce * verticalPercent;
 
