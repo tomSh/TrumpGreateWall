@@ -5,6 +5,7 @@ public class Trump : MonoBehaviour {
 
     public GameObject explosion;        // Prefab of explosion effect.
     public AudioClip[] taunts;
+    public AudioClip deathSound;
     private int lastTauntIndex = 0;
     private static float TAUNT_INTERVAL = 1;
 
@@ -16,11 +17,6 @@ public class Trump : MonoBehaviour {
         }
     }
 
-    private void blowUp(Collider2D toBlow)
-    {
-        Destroy(toBlow);
-        
-    }
 
     void OnExplode()
     {
@@ -29,7 +25,10 @@ public class Trump : MonoBehaviour {
 
         // Instantiate the explosion where the rocket is with the random rotation.
         Instantiate(explosion, transform.position, randomRotation);
-        Destroy(this.gameObject);
+        AudioSource audioSrc = GetComponent<AudioSource>();
+        audioSrc.clip = deathSound;
+        audioSrc.Play(1);
+        Destroy(this.gameObject, 1.5f);
     }
 
     void FixedUpdate()

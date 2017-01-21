@@ -6,7 +6,7 @@ public class LaunchControl : MonoBehaviour{
 
     private const float MAX_DEG = 90f;
     private const float MAC_LAUNCH_FORCE = 30f;
-    private const float FIRE_INTERVAL_IN_SECONDS = 0.2f;
+    private const float FIRE_INTERVAL_IN_SECONDS = 0.25f;
 
     public float launchForce;
     public float chargeForce = 0;
